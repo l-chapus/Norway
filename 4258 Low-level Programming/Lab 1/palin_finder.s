@@ -21,10 +21,10 @@ _start:
 	
 
 	mov r3, #0			 // first index
-	ldrb r4, [r0,#0]        // first character
+	ldrb r4, [r0,#0]     // first character
 	sub r2, r2, #1		 // remove 1 from the text lengh to have the last index
 	mov r5, r2 			 // last index
-	ldrb r6, [r0,r5]	 	 // last charachter
+	ldrb r6, [r0,r5]	 // last charachter
 
 	b check_palindrom   // branch link to check_input
 	
