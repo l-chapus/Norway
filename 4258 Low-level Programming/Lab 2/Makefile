@@ -2,7 +2,7 @@
 
 # Choose your compiler g++/clang++
 CXX        = gcc
-CXXFLAGS   = -Wall -Wextra 
+CXXFLAGS   = -Wall -Wextra
 DEPFLAGS   = -MMD
 LDFLAGS    = 
 # Replace your_files.cpp with the list of cpp files that need to be compiled
@@ -16,7 +16,7 @@ DEPS	   = $(OBJS:.o=.d)
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJS) 
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJS) -lm
 
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c  $<

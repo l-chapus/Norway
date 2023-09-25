@@ -1,0 +1,2 @@
+import os
+os.chdir('C:\\Users\\louka\\Desktop\\Github\\Norway\\4136 Introduction to Artificial Intelligence\\Assignement 2\\code_handout')

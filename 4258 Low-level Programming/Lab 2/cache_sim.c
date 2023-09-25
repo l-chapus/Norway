@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 typedef enum { dm, fa } cache_map_t;
 typedef enum { uc, sc } cache_org_t;
@@ -27,6 +28,17 @@ uint32_t cache_size;
 uint32_t block_size = 64;
 cache_map_t cache_mapping;
 cache_org_t cache_org;
+
+uint32_t nb_set;
+uint32_t nb_way;
+uint32_t bit_offset;
+uint32_t bit_index;
+uint32_t bit_tag;
+
+uint32_t address_tag;
+uint32_t previous_address;
+uint32_t previous_D_address;
+uint32_t previous_I_address;
 
 // USE THIS FOR YOUR CACHE STATISTICS
 cache_stat_t cache_statistics;
@@ -101,11 +113,51 @@ void main(int argc, char** argv) {
 
   /* Open the file mem_trace.txt to read memory accesses */
   FILE* ptr_file;
-  ptr_file = fopen("mem_trace1.txt", "r");
+  ptr_file = fopen("mem_trace2.txt", "r");
   if (!ptr_file) {
     printf("Unable to open the trace file\n");
     exit(1);
   }
+
+
+  // Intialization of the variable with the correct number in it
+  if (!cache_org && cache_mapping ) {      // fa uc
+    nb_set = 1;
+    nb_way = cache_size/block_size;
+    bit_offset =  log2(block_size);
+    bit_index = 0;
+    bit_tag = 32 - bit_offset - bit_index;
+
+    
+  }
+  if (cache_org && cache_mapping) {       // fa sc
+    cache_size = cache_size/2;
+    nb_set = 1;
+    nb_way = cache_size/block_size;
+    bit_offset =  log2(block_size);
+    bit_index = 0;
+    bit_tag = 32 - bit_offset - bit_index;
+  }
+  if (!cache_org  && !cache_mapping) {    // dm uc
+    nb_set = cache_size/block_size;
+    nb_way = 1;
+    bit_offset =  log2(block_size);
+    bit_index = log2(nb_set);
+    bit_tag = 32 - bit_offset - bit_index;
+  }
+  if (cache_org && !cache_mapping) {      // dm sc
+    cache_size = cache_size/2;
+    nb_set = cache_size/block_size;
+    nb_way = 1;
+    bit_offset =  log2(block_size);
+    bit_index = log2(nb_set);
+    bit_tag = 32 - bit_offset - bit_index;
+  }
+
+  uint32_t address_list[nb_way];
+  uint32_t address_I_list[nb_way];
+  uint32_t address_D_list[nb_way];
+
 
   /* Loop until whole trace file has been read */
   mem_access_t access;
@@ -113,13 +165,89 @@ void main(int argc, char** argv) {
     access = read_transaction(ptr_file);
     // If no transactions left, break out of loop
     if (access.address == 0) break;
-    printf("%d %x\n", access.accesstype, access.address);
+
+    address_tag = access.address >> (32 - bit_tag);     
+    
+    //printf("%d %x %x %x\n", access.accesstype, access.address, address_tag, previous_address);
     /* Do a cache access */
     // 0 -> I -> Instruction
     // 1 -> D -> Data
     // ADD YOUR CODE HERE
     cache_statistics.accesses++;   // the accesses are increase each time we have an instruction or a data
-    
+
+    if (!cache_org && cache_mapping ) {     // fa uc
+      int bool_hit = 0;
+      for(int k=0; k<nb_way ; k++){
+        if (address_tag == address_list[k]){
+          cache_statistics.hits++;
+          bool_hit = 1;
+        }
+      }
+      if (!bool_hit){         // if this is a miss
+        for(int k=1; k<nb_way; k++){
+          address_list[k-1] = address_list[k];
+        }
+        address_list[nb_way - 1] = address_tag;
+      }
+    }
+
+
+    if (cache_org && cache_mapping) {       // fa sc
+      if (access.accesstype){     // for the data
+        int bool_hit = 0;
+        for(int k=0; k<nb_way ; k++){
+          if (address_tag == address_D_list[k]){
+            cache_statistics.hits++;
+            bool_hit = 1;
+          }
+        }
+        if (!bool_hit){         // if this is a miss
+          for(int k=1; k<nb_way; k++){
+            address_D_list[k-1] = address_D_list[k];
+          }
+          address_D_list[nb_way - 1] = address_tag;
+        }
+      }
+      if (!access.accesstype){     // for the instruction
+        int bool_hit = 0;
+        for(int k=0; k<nb_way ; k++){
+          if (address_tag == address_I_list[k]){
+            cache_statistics.hits++;
+            bool_hit = 1;
+          }
+        }
+        if (!bool_hit){         // if this is a miss
+          for(int k=1; k<nb_way; k++){
+            address_I_list[k-1] = address_I_list[k];
+          }
+          address_I_list[nb_way - 1] = address_tag;
+        }
+      }
+    }
+
+
+    if (!cache_org && !cache_mapping) {      // dm uc
+      if (address_tag == previous_address){
+        cache_statistics.hits++;
+      }
+      previous_address = address_tag;
+    }
+
+
+    if (cache_org  && !cache_mapping) {     // dm sc
+      if (access.accesstype){               // for the data
+        if (address_tag == previous_D_address){
+          cache_statistics.hits++;
+        }
+        previous_D_address = address_tag;
+      }
+      if (!access.accesstype){              // for the instruction
+        if (address_tag == previous_I_address){
+          cache_statistics.hits++;
+        }
+        previous_I_address = address_tag;
+      }
+    }
 
   }
   /* Print the statistics */
@@ -133,6 +261,15 @@ void main(int argc, char** argv) {
   // DO NOT CHANGE UNTIL HERE
   // You can extend the memory statistic printing if you like!
 
+  printf("-----------------\n\n");
+  printf("Size:   %d\n", cache_size);
+  printf("Set:    %d\n", nb_set);
+  printf("Way:    %d\n", nb_way);
+  printf("Offset: %d\n", bit_offset);
+  printf("Index:  %d\n", bit_index);
+  printf("Tag:    %d\n", bit_tag);
+
   /* Close the trace file */
   fclose(ptr_file);
 }
+
