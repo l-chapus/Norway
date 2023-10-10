@@ -120,7 +120,7 @@ void main(int argc, char** argv) {
   }
 
 
-  // Intialization of the variable with the correct number in it
+  // Intialization of variable with the correct number in it, we calculate the number of set, way and the lengh of the offset, index and tag
   if (!cache_org && cache_mapping ) {      // fa uc
     nb_set = 1;
     nb_way = cache_size/block_size;
@@ -166,35 +166,36 @@ void main(int argc, char** argv) {
     // If no transactions left, break out of loop
     if (access.address == 0) break;
 
-    address_tag = access.address >> (32 - bit_tag);     
+    address_tag = access.address >> (32 - bit_tag);     // we only keep the bits of the tag
     
-    //printf("%d %x %x %x\n", access.accesstype, access.address, address_tag, previous_address);
     /* Do a cache access */
     // 0 -> I -> Instruction
     // 1 -> D -> Data
     // ADD YOUR CODE HERE
     cache_statistics.accesses++;   // the accesses are increase each time we have an instruction or a data
+    int bool_hit;
 
-    if (!cache_org && cache_mapping ) {     // fa uc
-      int bool_hit = 0;
+    // then we have a different implementation for each case
+    if (!cache_org && cache_mapping ) {     // FA UC
+      bool_hit = 0;                         // reset the boolean
       for(int k=0; k<nb_way ; k++){
         if (address_tag == address_list[k]){
           cache_statistics.hits++;
           bool_hit = 1;
         }
       }
-      if (!bool_hit){         // if this is a miss
+      if (!bool_hit){                          // if this is a miss
         for(int k=1; k<nb_way; k++){
-          address_list[k-1] = address_list[k];
+          address_list[k-1] = address_list[k]; // shifts all addresses by one to the left
         }
-        address_list[nb_way - 1] = address_tag;
+        address_list[nb_way - 1] = address_tag; // add the last address to the end
       }
     }
 
-
-    if (cache_org && cache_mapping) {       // fa sc
-      if (access.accesstype){     // for the data
-        int bool_hit = 0;
+    // We do the same thing as before, we just separate the data and the instruction because it's a split cache
+    if (cache_org && cache_mapping) {       // FA SC
+      if (access.accesstype){               // For the data
+        bool_hit = 0;
         for(int k=0; k<nb_way ; k++){
           if (address_tag == address_D_list[k]){
             cache_statistics.hits++;
@@ -208,8 +209,8 @@ void main(int argc, char** argv) {
           address_D_list[nb_way - 1] = address_tag;
         }
       }
-      if (!access.accesstype){     // for the instruction
-        int bool_hit = 0;
+      if (!access.accesstype){            // For the instruction
+        bool_hit = 0;
         for(int k=0; k<nb_way ; k++){
           if (address_tag == address_I_list[k]){
             cache_statistics.hits++;
@@ -226,15 +227,15 @@ void main(int argc, char** argv) {
     }
 
 
-    if (!cache_org && !cache_mapping) {      // dm uc
-      if (address_tag == previous_address){
-        cache_statistics.hits++;
+    if (!cache_org && !cache_mapping) {      // DM UC
+      if (address_tag == previous_address){  // if the current tag is the same as before
+        cache_statistics.hits++;             // we have a hit
       }
-      previous_address = address_tag;
+      previous_address = address_tag;        // we only store the last address used and not an array
     }
 
-
-    if (cache_org  && !cache_mapping) {     // dm sc
+    // same thing, we just separate the data and the instruction
+    if (cache_org  && !cache_mapping) {     // DM SC
       if (access.accesstype){               // for the data
         if (address_tag == previous_D_address){
           cache_statistics.hits++;
@@ -261,6 +262,7 @@ void main(int argc, char** argv) {
   // DO NOT CHANGE UNTIL HERE
   // You can extend the memory statistic printing if you like!
 
+  // We print other usefull informations
   printf("-----------------\n\n");
   printf("Size:   %d\n", cache_size);
   printf("Set:    %d\n", nb_set);

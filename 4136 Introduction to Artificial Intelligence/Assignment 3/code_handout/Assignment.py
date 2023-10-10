@@ -18,6 +18,9 @@ class CSP:
         # the variable pair (i, j)
         self.constraints = {}
 
+        self.backtrack_run = 0
+        self.backtrack_failure = 0
+
     def add_variable(self, name: str, domain: list):
         """Add a new variable to the CSP.
 
@@ -169,7 +172,28 @@ class CSP:
         iterations of the loop.
         """
         # TODO: YOUR CODE HERE
-        pass
+
+        var = self.select_unassigned_variable(assignment)   # get the coordinate of an unssagnied variable
+        if not var:                                         # if all the variables are assigned
+            return assignment                               # we return the assignment
+
+        self.backtrack_run += 1                             # increase the counter by one
+
+        for value in self.domains[var]:                     # browse domain values
+            assignment_temp = copy.deepcopy(assignment)     # make a deepcopy of the assignment
+
+            assignment_temp[var] = [value]                  # Add {var = value} to the assignment
+            inferences = self.inference(assignment_temp, self.get_all_arcs())  # update all legal variables
+
+            if inferences:                                  # if the update goes well
+                result = self.backtrack(assignment_temp)    # recall the function with the updated assignement
+
+                if result:                                  # if this is a succes
+                    return result                           # return the result
+
+        self.backtrack_failure += 1                         # increase the failure counter
+        return False
+
 
     def select_unassigned_variable(self, assignment):
         """The function 'Select-Unassigned-Variable' from the pseudocode
@@ -178,7 +202,14 @@ class CSP:
         of legal values has a length greater than one.
         """
         # TODO: YOUR CODE HERE
-        pass
+
+        for k in range(len(assignment)):                    # browse the assignment
+            if (len(assignment[self.variables[k]]) > 1):    # if we have more than one legal value
+                return self.variables[k]                    # we return the coordinate
+
+        return None                                         # if we don't find any unassigned variables
+
+
 
     def inference(self, assignment, queue):
         """The function 'AC-3' from the pseudocode in the textbook.
@@ -187,7 +218,14 @@ class CSP:
         is the initial queue of arcs that should be visited.
         """
         # TODO: YOUR CODE HERE
-        pass
+
+        while queue:                                # while the queue is not empty
+            x_i,x_j = queue.pop()                   # extract the last element
+            if self.revise(assignment, x_i, x_j):   # update the lagal value
+                if not assignment[x_i]:             # if there is no legal value
+                    return False
+
+        return True
 
     def revise(self, assignment, i, j):
         """The function 'Revise' from the pseudocode in the textbook.
@@ -199,7 +237,15 @@ class CSP:
         legal values in 'assignment'.
         """
         # TODO: YOUR CODE HERE
-        pass
+
+        revised = False                                 # start with false
+
+        for x in assignment[i]:                         # for each legal value in the i's coordinate
+            if not any(x != y for y in assignment[j]):  # check if the value is already assigned
+                assignment[i].remove(x)                 # we delete the value form the legal value of i
+                revised = True                          # set to true
+
+        return revised
 
 
 def create_map_coloring_csp():
@@ -280,9 +326,62 @@ def print_sudoku_solution(solution):
 
 
 """ Main execution """
-import os
-os.chdir('C:\\Users\\louka\\Desktop\\Github\\Norway\\4136 Introduction to Artificial Intelligence\\Assignment 3\\code_handout')
+## EASY
+print("==========================\n          EASY\n==========================")
+
+sudoku_easy = create_sudoku_csp("easy.txt")
+
+solution = sudoku_easy.backtracking_search()
+print_sudoku_solution(solution)
+
+print("--------------------------")
+print("failure", sudoku_easy.backtrack_failure, "  and runs", sudoku_easy.backtrack_run)
+print("==========================")
 
 
-test = create_sudoku_csp("easy.txt")
+## MEDIUM
+print("==========================\n          MEDIUM\n==========================")
+
+sudoku_medium = create_sudoku_csp("medium.txt")
+
+solution = sudoku_medium.backtracking_search()
+print_sudoku_solution(solution)
+
+print("--------------------------")
+print("failure", sudoku_medium.backtrack_failure, "  and runs", sudoku_medium.backtrack_run)
+print("==========================")
+
+
+## HARD
+
+print("==========================\n          HARD\n==========================")
+
+sudoku_hard = create_sudoku_csp("hard.txt")
+
+solution = sudoku_hard.backtracking_search()
+print_sudoku_solution(solution)
+
+print("--------------------------")
+print("failure", sudoku_hard.backtrack_failure, "  and runs", sudoku_hard.backtrack_run)
+print("==========================")
+
+
+## VERY HARD
+
+print("==========================\n          VERY HARD\n==========================")
+
+sudoku_veryhard = create_sudoku_csp("veryhard.txt")
+
+solution = sudoku_veryhard.backtracking_search()
+print_sudoku_solution(solution)
+
+print("--------------------------")
+print("failure", sudoku_veryhard.backtrack_failure, "  and runs", sudoku_veryhard.backtrack_run)
+print("==========================")
+
+
+
+
+
+
 
